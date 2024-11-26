@@ -7,6 +7,7 @@ import piexif
 from PIL import Image
 from click import progressbar
 
+Image.MAX_IMAGE_PIXELS = None
 
 @click.command()
 @click.argument('input_path', type=click.Path(exists=True))
@@ -103,6 +104,19 @@ def convert(input_path, output_dir, thumb, thumb_dir, compress, verbose, recursi
 
 
 def process_image(input_file, output_dir, thumb, thumb_dir, quality, remove_metadata, verbose, copyright_text):
+    """
+    Processes a single JPEG image according to the specified options.
+
+    Parameters:
+    - input_file: Path to the input JPEG file.
+    - output_dir: Directory to save the output images.
+    - thumb: Thumbnail specification.
+    - thumb_dir: Directory to save thumbnails.
+    - quality: Compression quality for the output images.
+    - remove_metadata: Remove EXIF metadata from images.
+    - verbose: Enable verbose output during processing.
+    - copyright_text: Add copyright text to the image metadata.
+    """
     try:
         with Image.open(input_file) as img:
             # Ensure the image is in JPEG format
@@ -154,6 +168,15 @@ def process_image(input_file, output_dir, thumb, thumb_dir, quality, remove_meta
 
 
 def create_thumbnail(img, spec, thumb_file, verbose):
+    """
+    Creates a thumbnail for the given image based on the specified thumbnail specification.
+
+    Parameters:
+    - img: The original image.
+    - spec: Thumbnail specification in the format WxH[tfb].
+    - thumb_file: Path to save the thumbnail.
+    - verbose: Enable verbose output during processing.
+    """
     try:
         width, height, mode = parse_thumb_spec(spec)
         original_width, original_height = img.size
@@ -172,15 +195,15 @@ def create_thumbnail(img, spec, thumb_file, verbose):
                         img_thumb = crop_bottom(img, target_width, target_height)
             case 'fit':
                 img_thumb = img.copy()
-                img_thumb.thumbnail((width, height), Image.ANTIALIAS)
+                img_thumb.thumbnail((width, height), Image.Resampling.LANCZOS)
             case 'resize_width':
                 ratio = width / float(original_width)
                 height_new = int(float(original_height) * ratio)
-                img_thumb = img.resize((width, height_new), Image.ANTIALIAS)
+                img_thumb = img.resize((width, height_new), Image.Resampling.LANCZOS)
             case 'resize_height':
                 ratio = height / float(original_height)
                 width_new = int(float(original_width) * ratio)
-                img_thumb = img.resize((width_new, height), Image.ANTIALIAS)
+                img_thumb = img.resize((width_new, height), Image.Resampling.LANCZOS)
             case _:
                 raise ValueError(f"Unknown mode: {mode}")
 
@@ -198,6 +221,14 @@ def create_thumbnail(img, spec, thumb_file, verbose):
 def parse_thumb_spec(spec):
     """
     Parses the thumbnail specification and returns width, height, and mode.
+
+    Parameters:
+    - spec: Thumbnail specification in the format WxH[tfb].
+
+    Returns:
+    - width: Width of the thumbnail.
+    - height: Height of the thumbnail.
+    - mode: Mode of the thumbnail (e.g., crop_center, crop_top, crop_bottom, fit, resize_width, resize_height).
     """
     pattern = r'^(\d*)x(\d*)([tfb]?|f?)$'
     match = re.match(pattern, spec)
@@ -232,6 +263,14 @@ def parse_thumb_spec(spec):
 def crop_center(img, target_width, target_height):
     """
     Crops the image centered.
+
+    Parameters:
+    - img: The original image.
+    - target_width: Target width of the cropped image.
+    - target_height: Target height of the cropped image.
+
+    Returns:
+    - Cropped image.
     """
     width, height = img.size
     left = (width - target_width) // 2
@@ -244,6 +283,14 @@ def crop_center(img, target_width, target_height):
 def crop_top(img, target_width, target_height):
     """
     Crops the image from the top.
+
+    Parameters:
+    - img: The original image.
+    - target_width: Target width of the cropped image.
+    - target_height: Target height of the cropped image.
+
+    Returns:
+    - Cropped image.
     """
     width, height = img.size
     left = (width - target_width) // 2
@@ -256,6 +303,14 @@ def crop_top(img, target_width, target_height):
 def crop_bottom(img, target_width, target_height):
     """
     Crops the image from the bottom.
+
+    Parameters:
+    - img: The original image.
+    - target_width: Target width of the cropped image.
+    - target_height: Target height of the cropped image.
+
+    Returns:
+    - Cropped image.
     """
     width, height = img.size
     left = (width - target_width) // 2
